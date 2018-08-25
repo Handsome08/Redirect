@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Web;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Server.Kestrel.Internal.System.Text.Encodings.Web.Utf8;
 using Microsoft.EntityFrameworkCore;
 using Redirect.Models;
+using UrlEncoder = System.Text.Encodings.Web.UrlEncoder;
 
 namespace Redirect.Controllers
 {
@@ -51,7 +55,16 @@ namespace Redirect.Controllers
         [HttpGet("{uri}")]
         public string GetBuildUri(string uri)
         {
-            var uriModel = new UriModel(){Id = Guid.NewGuid().ToString(),Uri = uri};
+            Regex regx = new Regex(@"\b(?<=(http|https)://)[\w- ./?%&=]*$");
+            string encode = regx.Replace(uri, new MatchEvaluator(ReplaceURl));
+
+            string ReplaceURl(Match m)
+            {
+                string x = m.ToString();
+                x = Uri.EscapeUriString(x);
+                return x;
+            }
+            var uriModel = new UriModel(){Id = Guid.NewGuid().ToString(),Uri = encode };
             _context.UriModel.Add(uriModel);
             _context.SaveChanges();
             var request = this.HttpContext.Request;
